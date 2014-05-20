@@ -55,6 +55,7 @@ class FieldRepository extends Repository {
 		foreach ($uids as $uid) {
 			$query = $this->createQuery();
 			$query->getQuerySettings()->setRespectStoragePage(FALSE);
+			$query->getQuerySettings()->setRespectSysLanguage(FALSE);
 			$field = $query->matching($query->equals('uid', $uid))->execute()->getFirst();
 			if ($field !== NULL) {
 				$result[] = $field;
