@@ -85,6 +85,12 @@ class Div {
 	protected $objectManager;
 
 	/**
+	 * @var \TYPO3\CMS\Extbase\SignalSlot\Dispatcher
+	 * @inject
+	 */
+	protected $signalSlotDispatcher;
+
+	/**
 	 * Get Field Uid List from given Form Uid
 	 *
 	 * @param \integer $formUid Form Uid
@@ -365,6 +371,9 @@ class Div {
 			}
 			$variables[$answer->getField()->getMarker()] = $value;
 		}
+
+		list($variables) = $this->signalSlotDispatcher->dispatch(__CLASS__, __FUNCTION__, array($variables, $mail));
+
 		return $variables;
 	}
 
