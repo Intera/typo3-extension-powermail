@@ -276,9 +276,11 @@ class MailRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 	 *
 	 * @param \array $settings TypoScript Settings
 	 * @param \array $piVars Plugin Variables
-	 * @return \TYPO3\CMS\Extbase\Persistence\Generic\QueryResult
+	 * @param int $mailUid Optional UID of a mail record. If set, only one Mail object will be returned.
+	 * @return \TYPO3\CMS\Extbase\Persistence\QueryResultInterface|\In2code\Powermail\Domain\Model\Mail A single mail
+	 * record if mail UID is provided or a query result object.
 	 */
-	public function findListBySettings($settings, $piVars) {
+	public function findListBySettings($settings, $piVars, $mailUid = NULL) {
 		$query = $this->createQuery();
 		$query->getQuerySettings()->setRespectStoragePage(FALSE);
 
@@ -288,6 +290,10 @@ class MailRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 		$and = array(
 			$query->greaterThan('uid', 0)
 		);
+
+		if (isset($mailUid)) {
+			$and[] = $query->equals('uid', $mailUid);
+		}
 
 		// FILTER: form
 		if (intval($settings['main']['form']) > 0) {
@@ -307,6 +313,18 @@ class MailRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 		// FILTER: showownonly
 		if ($settings['list']['showownonly']) {
 			$and[] = $query->equals('feuser', $GLOBALS['TSFE']->fe_user->user['uid']);
+		}
+
+		if ($settings['main']['requiredFields']) {
+			$requiredFieldUidArray = GeneralUtility::intExplode(',', $settings['main']['requiredFields'], TRUE);
+			if (!empty($requiredFieldUidArray)) {
+				$mailUidsWhereRequiredFieldsAreNotEmpty = $this->findWhereAnswerFieldsAreNotEmpty($requiredFieldUidArray, $settings['main']['form']);
+				if (empty($mailUidsWhereRequiredFieldsAreNotEmpty)) {
+					$and[] = $query->equals('uid', 0);
+				} else {
+					$and[] = $query->in('uid', $mailUidsWhereRequiredFieldsAreNotEmpty);
+				}
+			}
 		}
 
 		// FILTER: abc
@@ -360,7 +378,62 @@ class MailRepository extends \TYPO3\CMS\Extbase\Persistence\Repository {
 		/**
 		 * FINISH
 		 */
-		$mails = $query->execute();
+		if (isset($mailUid)) {
+			$mails = $query->execute()->getFirst();
+		} else {
+			$mails = $query->execute();
+		}
 		return $mails;
+	}
+
+	/**
+	 * Returns an array of mail UIDs where the answers to the given fields
+	 * are not empty.
+	 *
+	 * @param array $fieldUidArray
+	 * @param int $mailFormUid
+	 * @return array
+	 */
+	protected function findWhereAnswerFieldsAreNotEmpty(array $fieldUidArray, $mailFormUid = NULL) {
+
+		$mailUids = array();
+
+		$joinStatements = '';
+		$whereStatements = '1=1';
+		$counter = 1;
+
+		if (isset($mailForm)) {
+			$mailFormUid = (int)$mailFormUid;
+			if ($mailFormUid !== 0) {
+				$whereStatements .= ' AND mail.form=' . $mailFormUid;
+			}
+		}
+
+		foreach ($fieldUidArray as $fieldUid) {
+			$fieldName = 'answer'. $counter;
+			$joinStatements .= " JOIN tx_powermail_domain_model_answers as $fieldName on ($fieldName.mail=mail.uid and $fieldName.field=$fieldUid)";
+			$whereStatements .= " AND ($fieldName.uid IS NOT NULL AND $fieldName.value != '')";
+			$counter++;
+		}
+
+		$db = $this->getDatabaseConnection();
+		$result = $db->exec_SELECTquery(
+			'mail.uid',
+			'tx_powermail_domain_model_mails mail' . $joinStatements,
+			$whereStatements
+		);
+
+		while ($row = $db->sql_fetch_row($result)) {
+			$mailUids[] = $row[0];
+		}
+
+		return $mailUids;
+	}
+
+	/**
+	 * @return \TYPO3\CMS\Core\Database\DatabaseConnection
+	 */
+	protected function getDatabaseConnection() {
+		return $GLOBALS['TYPO3_DB'];
 	}
 }

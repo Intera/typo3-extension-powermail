@@ -995,6 +995,9 @@
 				<source>You are not allowed to make changes</source>
 				<target state="translated">Sie haben nicht die benötigte Berechtigung um Änderungen durchzuführen</target>
 			</trans-unit>
+			<trans-unit id="PowermailFrontendMailNotAccessible">
+				<source>Auf die gewählte Mail kann nicht zugegriffen werden.</source>
+			</trans-unit>
 			<trans-unit id="PowermailFrontendEditSuccessful">
 				<source>Changes successfully saved</source>
 				<target state="translated">Änderungen erfolgreich gespeichert</target>

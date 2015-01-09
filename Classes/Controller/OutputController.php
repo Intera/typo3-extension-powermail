@@ -75,10 +75,20 @@ class OutputController extends AbstractController {
 	/**
 	 * Show single mail
 	 *
-	 * @param \In2code\Powermail\Domain\Model\Mail $mail
+	 * @param int $mail
 	 * @return void
 	 */
-	public function showAction(Mail $mail) {
+	public function showAction($mail) {
+
+		if ($this->settings['single']['disable']) {
+			$mail = 0;
+		}
+
+		$mail = $this->getMailOrRedirectToList($mail);
+
+		$this->view->assign('mail', $mail);
+
+		// get fields for iteration
 		if ($this->settings['single']['fields']) {
 			$fieldArray = GeneralUtility::trimExplode(',', $this->settings['single']['fields'], TRUE);
 		} else {
@@ -92,10 +102,16 @@ class OutputController extends AbstractController {
 	/**
 	 * Edit mail
 	 *
-	 * @param \In2code\Powermail\Domain\Model\Mail $mail
+	 * @param int $mail
 	 * @return void
 	 */
-	public function editAction(Mail $mail = NULL) {
+	public function editAction($mail) {
+
+		$mail = $this->getMailOrRedirectToList($mail);
+
+		$this->view->assign('mail', $mail);
+
+		// get fields for iteration
 		if ($this->settings['edit']['fields']) {
 			$fieldArray = GeneralUtility::trimExplode(',', $this->settings['edit']['fields'], TRUE);
 		} else {
@@ -130,12 +146,34 @@ class OutputController extends AbstractController {
 	 * Update mail
 	 *
 	 * @param \In2code\Powermail\Domain\Model\Mail $mail
-	 * @validate $mail In2code\Powermail\Domain\Validator\InputValidator
+	 * @dontvalidate $mail
 	 * @return void
 	 */
 	public function updateAction(Mail $mail) {
-		$this->mailRepository->update($mail);
-		$this->addFlashmessage(LocalizationUtility::translate('PowermailFrontendEditSuccessful', 'powermail'));
+
+		$this->getMailOrRedirectToList($mail->getUid());
+
+		if ($this->div->isAllowedToEdit($this->settings, $mail)) {
+
+			/**
+			 * @var \In2code\Powermail\Domain\Model\Answer $newAnswer
+			 * @var \In2code\Powermail\Domain\Model\Answer $answer
+			 */
+			foreach ($mail->getAnswers() as $newAnswer) {
+				// This is needed because the answer was not read from persistence before.
+				$answer = $this->answerRepository->findByFieldAndMail($newAnswer->getField()->getUid(), $mail);
+				$answer->setValue($newAnswer->getValue());
+				$this->answerRepository->update($answer);
+			}
+			$this->flashMessageContainer->add(
+				LocalizationUtility::translate('PowermailFrontendEditConfirm', 'powermail')
+			);
+		} else {
+			$this->flashMessageContainer->add(
+				LocalizationUtility::translate('PowermailFrontendEditFailed', 'powermail')
+			);
+		}
+
 		$this->redirect('edit', NULL, NULL, array('mail' => $mail));
 	}
 
@@ -233,6 +271,30 @@ class OutputController extends AbstractController {
 		$mails = $this->mailRepository->findListBySettings($this->settings, $this->piVars);
 		$this->view->assign('mails', $mails);
 		$this->assignMultipleActions();
+	}
+
+	/**
+	 * Tries to fetch the mail with the given UID and the current settings from the database.
+	 * If no mail object can be fetched the user is redirected to the list with a flash messsage.
+	 *
+	 * @param int $mailUid
+	 * @return Mail
+	 */
+	protected function getMailOrRedirectToList($mailUid) {
+
+		$mailUid = (int)$mailUid;
+		$mail = NULL;
+
+		if ($mailUid) {
+			$mail = $this->mailRepository->findListBySettings($this->settings, array(), $mailUid);
+		}
+
+		if (!$mail instanceof Mail) {
+			$this->addFlashMessage(LocalizationUtility::translate('PowermailFrontendMailNotAccessible', 'powermail'));
+			$this->redirect('list');
+		}
+
+		return $mail;
 	}
 
 	/**

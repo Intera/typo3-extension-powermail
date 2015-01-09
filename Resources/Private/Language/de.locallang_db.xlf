@@ -659,6 +659,10 @@
 				<source>Select a page with mails (optional)</source>
 				<target state="translated">Seite mit Mails auswählen (optional)</target>
 			</trans-unit>
+			<trans-unit id="flexform_pi2.main.requiredFields">
+				<source>Required fields (if one of the selected fields is empty, record will not hidden)</source>
+				<target state="translated">Erforderliche Felder (wenn eines der Felder leer ist, wird Datensatz verborgen)</target>
+			</trans-unit>
 			<trans-unit id="flexform_pi2.list">
 				<source>Listview</source>
 				<target state="translated">Listenansicht</target>
@@ -706,6 +710,10 @@
 			<trans-unit id="flexform_pi2.single">
 				<source>Detailview</source>
 				<target state="translated">Detailansicht</target>
+			</trans-unit>
+			<trans-unit id="flexform_pi2.single.disable">
+				<source>Disable detail view</source>
+				<target state="translated">Detailansicht deaktivieren</target>
 			</trans-unit>
 			<trans-unit id="flexform_pi2.single.fields">
 				<source>Choose Fields to show (Empty: All Fields)</source>

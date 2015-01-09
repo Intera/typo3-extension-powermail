@@ -495,6 +495,9 @@
 			<trans-unit id="flexform_pi2.main.pid">
 				<source>Select a page with mails (optional)</source>
 			</trans-unit>
+			<trans-unit id="flexform_pi2.main.requiredFields">
+				<source>Required fields (if one of the selected fields is empty, record will not hidden)</source>
+			</trans-unit>
 			<trans-unit id="flexform_pi2.list">
 				<source>Listview</source>
 			</trans-unit>
@@ -530,6 +533,9 @@
 			</trans-unit>
 			<trans-unit id="flexform_pi2.single">
 				<source>Detailview</source>
+			</trans-unit>
+			<trans-unit id="flexform_pi2.single.disable">
+				<source>Disable detail view</source>
 			</trans-unit>
 			<trans-unit id="flexform_pi2.single.fields">
 				<source>Choose Fields to show (Empty: All Fields)</source>
