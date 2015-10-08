@@ -191,14 +191,15 @@ class SendMail {
 		}
 
 		// add attachments from upload fields
-		if ($settings[$type]['attachment']) {
+		if ($settings[$type]['attachment'] && !empty($settings['misc']['file']['folder'])) {
+			$uploadFolder = rtrim($settings['misc']['file']['folder'], '/') . '/';
 			/** @var \In2code\Powermail\Domain\Model\Answer $answer */
 			foreach ($mail->getAnswers() as $answer) {
 				$values = $answer->getValue();
 				if ($answer->getValueType() === 3 && is_array($values) && !empty($values)) {
 					foreach ($values as $value) {
-						$file = $settings['misc']['file']['folder'] . $value;
-						if (file_exists(GeneralUtility::getFileAbsFileName($file))) {
+						$file = GeneralUtility::getFileAbsFileName($uploadFolder . $value);
+						if (file_exists($file)) {
 							$message->attach(\Swift_Attachment::fromPath($file));
 						} else {
 							GeneralUtility::devLog('Error: File to attach does not exist', 'powermail', 2, $file);
