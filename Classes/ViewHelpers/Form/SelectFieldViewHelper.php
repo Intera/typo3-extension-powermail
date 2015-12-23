@@ -18,6 +18,7 @@ class SelectFieldViewHelper extends SelectViewHelper {
 	 * @api
 	 */
 	public function render() {
+		$this->tag->forceClosingTag(TRUE);
 		$content = parent::render();
 
 		return $content;
@@ -37,6 +38,9 @@ class SelectFieldViewHelper extends SelectViewHelper {
 			$output .= $this->renderOptionTag($value, $label, FALSE) . chr(10);
 		}
 		foreach ($options as $option) {
+			if (!is_array($option)) {
+				continue;
+			}
 			$output .= $this->renderOptionTag(
 				$option['value'],
 				$option['label'],
