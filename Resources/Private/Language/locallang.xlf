@@ -777,6 +777,9 @@
 			<trans-unit id="PowermailFrontendEditFailed">
 				<source>You are not allowed to make changes</source>
 			</trans-unit>
+			<trans-unit id="PowermailFrontendMailNotAccessible">
+				<source>The selected mail is not accessible.</source>
+			</trans-unit>
 			<trans-unit id="PowermailFrontendEditSuccessful">
 				<source>Changes successfully saved</source>
 			</trans-unit>

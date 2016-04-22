@@ -72,11 +72,17 @@ class OutputController extends AbstractController
     /**
      * Show single mail
      *
-     * @param Mail $mail
+     * @param int $mail
      * @return void
      */
-    public function showAction(Mail $mail)
+    public function showAction($mail)
     {
+        if (empty($this->settings['single']['activateLink'])) {
+            $mail = 0;
+        }
+
+        $mail = $this->getMailOrRedirectToList($mail);
+
         $fieldArray = $this->getFieldList($this->settings['single']['fields']);
         $this->view->assignMultiple(
             [
@@ -90,11 +96,12 @@ class OutputController extends AbstractController
     /**
      * Edit mail
      *
-     * @param Mail $mail
+     * @param int $mail
      * @return void
      */
-    public function editAction(Mail $mail = null)
+    public function editAction($mail = 0)
     {
+        $mail = $this->getMailOrRedirectToList($mail);
         $fieldArray = $this->getFieldList($this->settings['edit']['fields']);
         $this->view->assignMultiple(
             [
@@ -113,6 +120,7 @@ class OutputController extends AbstractController
     public function initializeUpdateAction()
     {
         $arguments = $this->request->getArguments();
+        $this->getMailOrRedirectToList($arguments['field']['__identity']);
         if (!FrontendUtility::isAllowedToEdit($this->settings, $arguments['field']['__identity'])) {
             $this->controllerContext = $this->buildControllerContext();
             $this->addFlashmessage(
@@ -239,6 +247,30 @@ class OutputController extends AbstractController
         $mails = $this->mailRepository->findListBySettings($this->settings, $this->piVars);
         $this->view->assign('mails', $mails);
         $this->assignMultipleActions();
+    }
+
+    /**
+     * Tries to fetch the mail with the given UID and the current settings from the database.
+     * If no mail object can be fetched the user is redirected to the list with a flash messsage.
+     *
+     * @param int $mailUid
+     * @return Mail
+     */
+    protected function getMailOrRedirectToList($mailUid)
+    {
+        $mailUid = (int)$mailUid;
+        $mail = null;
+
+        if ($mailUid) {
+            $mail = $this->mailRepository->findListBySettings($this->settings, [], $mailUid);
+        }
+
+        if (!$mail instanceof Mail) {
+            $this->addFlashMessage(LocalizationUtility::translate('PowermailFrontendMailNotAccessible', 'powermail'));
+            $this->redirect('list');
+        }
+
+        return $mail;
     }
 
     /**
