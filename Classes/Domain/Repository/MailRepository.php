@@ -59,6 +59,12 @@ class MailRepository extends AbstractRepository
     protected $fieldRepository;
 
     /**
+     * @var \TYPO3\CMS\Extbase\SignalSlot\Dispatcher
+     * @inject
+     */
+    protected $signalSlotDispatcher;
+
+    /**
      * Find all mails in given PID (BE List)
      *
      * @param int $pid
@@ -417,6 +423,13 @@ class MailRepository extends AbstractRepository
         if ($htmlSpecialChars) {
             $variables = ArrayUtility::htmlspecialcharsOnArray($variables);
         }
+
+        list($variables) = $this->signalSlotDispatcher->dispatch(
+            'In2code\\Powermail\\Utility\\Div',
+            'getVariablesWithMarkers',
+            [$variables, $mail]
+        );
+
         return $variables;
     }
 
