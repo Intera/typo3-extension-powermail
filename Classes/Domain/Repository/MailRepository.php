@@ -199,9 +199,10 @@ class MailRepository extends AbstractRepository
      *
      * @param array $settings TypoScript Settings
      * @param array $piVars Plugin Variables
+     * @param int $mailUid Optional UID of a mail record. If set, only one Mail object will be returned.
      * @return QueryResult
      */
-    public function findListBySettings($settings, $piVars)
+    public function findListBySettings($settings, $piVars, $mailUid = NULL)
     {
         $query = $this->createQuery();
 
@@ -211,6 +212,10 @@ class MailRepository extends AbstractRepository
         $and = [
             $query->greaterThan('uid', 0)
         ];
+
+        if (isset($mailUid)) {
+            $and[] = $query->equals('uid', $mailUid);
+        }
 
         // FILTER: form
         if ((int)$settings['main']['form'] > 0) {
@@ -230,6 +235,21 @@ class MailRepository extends AbstractRepository
         // FILTER: showownonly
         if ($settings['list']['showownonly']) {
             $and[] = $query->equals('feuser', FrontendUtility::getPropertyFromLoggedInFrontendUser());
+        }
+
+        if ($settings['main']['requiredFields']) {
+            $requiredFieldUidArray = GeneralUtility::intExplode(',', $settings['main']['requiredFields'], true);
+            if (!empty($requiredFieldUidArray)) {
+                $mailUidsWhereRequiredFieldsAreNotEmpty = $this->findWhereAnswerFieldsAreNotEmpty(
+                    $requiredFieldUidArray,
+                    $settings['main']['form']
+                );
+                if (empty($mailUidsWhereRequiredFieldsAreNotEmpty)) {
+                    $and[] = $query->equals('uid', 0);
+                } else {
+                    $and[] = $query->in('uid', $mailUidsWhereRequiredFieldsAreNotEmpty);
+                }
+            }
         }
 
         // FILTER: abc
@@ -283,7 +303,11 @@ class MailRepository extends AbstractRepository
             $query->setLimit((int)$settings['list']['limit']);
         }
 
-        $mails = $query->execute();
+        if (isset($mailUid)) {
+            $mails = $query->execute()->getFirst();
+        } else {
+            $mails = $query->execute();
+        }
         return $mails;
     }
 
@@ -474,6 +498,59 @@ class MailRepository extends AbstractRepository
             $name = LocalizationUtility::translate('error_no_sender_name');
         }
         return trim($name);
+    }
+
+    /**
+     * Returns an array of mail UIDs where the answers to the given fields
+     * are not empty.
+     *
+     * @param array $fieldUidArray
+     * @param int $mailFormUid
+     * @return array
+     */
+    protected function findWhereAnswerFieldsAreNotEmpty(array $fieldUidArray, $mailFormUid = null)
+    {
+        $mailUids = [];
+
+        $joinStatements = '';
+        $whereStatements = '1=1';
+        $counter = 1;
+
+        if (isset($mailForm)) {
+            $mailFormUid = (int)$mailFormUid;
+            if ($mailFormUid !== 0) {
+                $whereStatements .= ' AND mail.form=' . $mailFormUid;
+            }
+        }
+
+        foreach ($fieldUidArray as $fieldUid) {
+            $fieldName = 'answer' . $counter;
+            $joinStatements .= " JOIN tx_powermail_domain_model_answers as $fieldName" .
+                " on ($fieldName.mail=mail.uid and $fieldName.field=$fieldUid)";
+            $whereStatements .= " AND ($fieldName.uid IS NOT NULL AND $fieldName.value != '')";
+            $counter++;
+        }
+
+        $db = $this->getDatabaseConnection();
+        $result = $db->exec_SELECTquery(
+            'mail.uid',
+            'tx_powermail_domain_model_mails mail' . $joinStatements,
+            $whereStatements
+        );
+
+        while ($row = $db->sql_fetch_row($result)) {
+            $mailUids[] = $row[0];
+        }
+
+        return $mailUids;
+    }
+
+    /**
+     * @return \TYPO3\CMS\Core\Database\DatabaseConnection
+     */
+    protected function getDatabaseConnection()
+    {
+        return $GLOBALS['TYPO3_DB'];
     }
 
     /**
