@@ -25,6 +25,7 @@ class SelectFieldViewHelper extends SelectViewHelper
      */
     public function render()
     {
+        $this->tag->forceClosingTag(true);
         $this->originalOptions = $this->arguments['options'];
         $this->setOptions();
         return parent::render();
@@ -53,6 +54,9 @@ class SelectFieldViewHelper extends SelectViewHelper
     {
         $optionArray = [];
         foreach ($this->arguments['options'] as $option) {
+            if (!is_array($option)) {
+                continue;
+            }
             $optionArray[$option['value']] = $option['label'];
         }
         $this->arguments['options'] = $optionArray;
